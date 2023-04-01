@@ -1,5 +1,5 @@
-using ASPNETWebAPI.Data;
-using Microsoft.EntityFrameworkCore;
+global using ASPNETWebAPI.Data;
+global using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 

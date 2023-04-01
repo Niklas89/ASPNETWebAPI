@@ -4,6 +4,7 @@ using ASPNETWebAPI.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace ASPNETWebAPI.Migrations
 {
     [DbContext(typeof(DataContext))]
-    partial class DataContextModelSnapshot : ModelSnapshot
+    [Migration("20230401200615_AllEntities")]
+    partial class AllEntities
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -114,36 +117,7 @@ namespace ASPNETWebAPI.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("Spendings");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            Amount = 250f,
-                            Comment = "I bought a new screen",
-                            Date = new DateTime(2023, 4, 1, 22, 55, 12, 124, DateTimeKind.Local).AddTicks(8517),
-                            SpendingTypeId = 3,
-                            UserId = 1
-                        },
-                        new
-                        {
-                            Id = 2,
-                            Amount = 50.5f,
-                            Comment = "I had a nice meal at the restaurant",
-                            Date = new DateTime(2023, 3, 31, 22, 55, 12, 124, DateTimeKind.Local).AddTicks(8559),
-                            SpendingTypeId = 1,
-                            UserId = 2
-                        },
-                        new
-                        {
-                            Id = 3,
-                            Amount = 110.9f,
-                            Comment = "I went to the best hotel in town",
-                            Date = new DateTime(2023, 3, 27, 22, 55, 12, 124, DateTimeKind.Local).AddTicks(8562),
-                            SpendingTypeId = 2,
-                            UserId = 1
-                        });
+                    b.ToTable("Spending");
                 });
 
             modelBuilder.Entity("ASPNETWebAPI.SpendingType", b =>
@@ -161,7 +135,7 @@ namespace ASPNETWebAPI.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("SpendingTypes");
+                    b.ToTable("SpendingType");
 
                     b.HasData(
                         new
