@@ -14,39 +14,42 @@ namespace UnitTestProject
 {
     public class SpendingTestController
     {
-        private readonly Mock<ISpendingService> spendingService;
+        private readonly Mock<ISpendingService> _spendingService;
+        private readonly SpendingController _sut;
+
         public SpendingTestController()
         {
-            spendingService = new Mock<ISpendingService>();
+            _spendingService = new Mock<ISpendingService>();
+            _sut = new SpendingController(_spendingService.Object);
         }
 
         [Fact]
-        public async Task GetSpendings_Should_Return_NotNull()
+        public async Task GetSpendings_Should_Return_NotNull_And_Ok()
         {
 
             //arrange
             var spendingList = await GetSpendingsData();
             //string expectResult = JsonConvert.SerializeObject((spendingList.Data));
 
-            spendingService.Setup(x => x.GetSpendings(1, ""))
+            _spendingService.Setup(x => x.GetSpendings(1, ""))
                 .ReturnsAsync(spendingList);
-            var spendingController = new SpendingController(spendingService.Object);
 
             //act
-            var spendingResult = await spendingController.Get(1);
+            var spendingResult = _sut.Get(1);
             //string resultString = JsonConvert.SerializeObject(spendingResult.Result);
             //string finalResultString = resultString.Substring(resultString.IndexOf(":") + 1, resultString.IndexOf("]"));
 
 
             //assert
             Assert.NotNull(spendingResult);
+            Assert.IsType<OkObjectResult>(spendingResult.Result.Result);
             //Assert.Equal(GetSpendingsData().Count(), spendingResult.Count());
             //Assert.Equal(spendingList.Data, resultString);
             //Assert.True(spendingList.Equals(spendingResult));
         }
 
         [Fact]
-        public async Task CreateSpending_Should_Return_NotNull()
+        public async Task CreateSpending_Should_Return_NotNull_And_Ok()
         {
             //arrange
 
@@ -73,14 +76,14 @@ namespace UnitTestProject
 
             ServiceResponse<Spending>  newSpendingSR = new ServiceResponse<Spending> { Data = newSpending };
 
-            spendingService.Setup(x => x.CreateSpending(newSpendingDto)).ReturnsAsync(newSpendingSR);
-            var spendingController = new SpendingController(spendingService.Object);
+            _spendingService.Setup(x => x.CreateSpending(newSpendingDto)).ReturnsAsync(newSpendingSR);
 
             //act
-            var spendingResult = await spendingController.Create(newSpendingDto);
+            var spendingResult = await _sut.Create(newSpendingDto);
 
             //assert
             Assert.NotNull(spendingResult);
+            Assert.IsType<OkObjectResult>(spendingResult.Result);
         }
 
         [Fact]
@@ -100,28 +103,183 @@ namespace UnitTestProject
                 Comment = "New restaurant in Paris"
             };
 
-            Spending newSpending = new Spending
-            {
-                Date = newSpendingDto.Date,
-                Amount = newSpendingDto.Amount,
-                Comment = newSpendingDto.Comment,
-                UserId = newSpendingDto.UserId,
-                SpendingTypeId = newSpendingDto.SpendingTypeId
+            //Spending newSpending = new Spending
+            //{
+            //    Date = newSpendingDto.Date,
+            //    Amount = newSpendingDto.Amount,
+            //    Comment = newSpendingDto.Comment,
+            //    UserId = newSpendingDto.UserId,
+            //    SpendingTypeId = newSpendingDto.SpendingTypeId
+            //};
+
+            ServiceResponse<Spending> newSpendingSR = new ServiceResponse<Spending> 
+            { 
+                Data = null,
+                Success = false,
+                Message = "The date cannot be superior to the current date."
             };
 
-            ServiceResponse<Spending> newSpendingSR = new ServiceResponse<Spending> { Data = newSpending };
-
-            spendingService.Setup(x => x.CreateSpending(newSpendingDto)).ReturnsAsync(newSpendingSR);
-            var spendingController = new SpendingController(spendingService.Object);
+            _spendingService.Setup(x => x.CreateSpending(newSpendingDto)).ReturnsAsync(newSpendingSR);
 
             //act
-            var spendingResult = await spendingController.Create(newSpendingDto);
+            var spendingResult = await _sut.Create(newSpendingDto);
 
             //assert
-            //Assert.IsType(spendingResult.Result, typeof(BadRequestResult));
-            //Assert.Equal("The date cannot be superior to the current date.", spendingResult.Message);
+            Assert.IsType<BadRequestObjectResult>(spendingResult.Result);
+
+            var spendingResultCasted = (BadRequestObjectResult)spendingResult.Result; 
+            var spendingResultMessage = spendingResultCasted.Value; 
+            Assert.Equal("The date cannot be superior to the current date.", spendingResultMessage);
         }
 
+        [Fact]
+        public async Task CreateSpending_Date_Cannot_Be_Inferior_To_ThreeMonthsAgo()
+        {
+            //arrange
+            SpendingDto newSpendingDto = new SpendingDto
+            {
+                UserId = 1,
+                UserFullName = "Anthony Stark",
+                Date = DateTime.Parse("2022-12-09T00:00:00"),
+                SpendingTypeId = 1,
+                SpendingTypeName = "Restaurant",
+                Amount = 65,
+                CurrencyName = "USD",
+                Comment = "New restaurant in Paris"
+            }; 
+
+            ServiceResponse<Spending> newSpendingSR = new ServiceResponse<Spending>
+            {
+                Data = null,
+                Success = false,
+                Message = "The date cannot be set to before 3 months ago. It must be between three months ago and today."
+            };
+
+            _spendingService.Setup(x => x.CreateSpending(newSpendingDto)).ReturnsAsync(newSpendingSR);
+
+            //act
+            var spendingResult = await _sut.Create(newSpendingDto);
+
+            //assert
+            Assert.IsType<BadRequestObjectResult>(spendingResult.Result);
+
+            var spendingResultCasted = (BadRequestObjectResult)spendingResult.Result;
+            var spendingResultMessage = spendingResultCasted.Value;
+            Assert.Equal("The date cannot be set to before 3 months ago. It must be between three months ago and today.", spendingResultMessage);
+        }
+
+        [Fact]
+        public async Task CreateSpending_Comment_Is_Mandatory()
+        {
+            //arrange
+            SpendingDto newSpendingDto = new SpendingDto
+            {
+                UserId = 1,
+                UserFullName = "Anthony Stark",
+                Date = DateTime.Parse("2022-03-09T00:00:00"),
+                SpendingTypeId = 1,
+                SpendingTypeName = "Restaurant",
+                Amount = 65,
+                CurrencyName = "USD",
+                Comment = " "
+            };
+
+            ServiceResponse<Spending> newSpendingSR = new ServiceResponse<Spending>
+            {
+                Data = null,
+                Success = false,
+                Message = "The comment is mandatory."
+            };
+
+            _spendingService.Setup(x => x.CreateSpending(newSpendingDto)).ReturnsAsync(newSpendingSR);
+
+            //act
+            var spendingResult = await _sut.Create(newSpendingDto);
+
+            //assert
+            Assert.IsType<BadRequestObjectResult>(spendingResult.Result);
+
+            var spendingResultCasted = (BadRequestObjectResult)spendingResult.Result;
+            var spendingResultMessage = spendingResultCasted.Value;
+            Assert.Equal("The comment is mandatory.", spendingResultMessage);
+        }
+
+        [Fact]
+        public async Task CreateSpending_Cannot_Have_SameDate_SameAmount_ForOneUser()
+        {
+            //arrange
+            SpendingDto newSpendingDto = new SpendingDto
+            {
+                UserId = 1,
+                UserFullName = "Anthony Stark",
+                Date = DateTime.Parse("2023-02-16T00:00:00"),
+                SpendingTypeId = 1,
+                SpendingTypeName = "Restaurant",
+                Amount = 50,
+                CurrencyName = "USD",
+                Comment = "Nice lunch in Nice on the market place"
+            };
+
+            ServiceResponse<Spending> newSpendingSR = new ServiceResponse<Spending>
+            {
+                Data = null,
+                Success = false,
+                Message = "There is already a spending with the same date and the same amount for this user."
+            };
+
+            _spendingService.Setup(x => x.CreateSpending(newSpendingDto)).ReturnsAsync(newSpendingSR);
+
+            //act
+            var spendingResult = await _sut.Create(newSpendingDto);
+
+            //assert
+            Assert.IsType<BadRequestObjectResult>(spendingResult.Result);
+
+            var spendingResultCasted = (BadRequestObjectResult)spendingResult.Result;
+            var spendingResultMessage = spendingResultCasted.Value;
+            Assert.Equal("There is already a spending with the same date and the same amount for this user.", spendingResultMessage);
+        }
+
+        [Fact]
+        public async Task CreateSpending_Currency_Must_Be_Identical_ToTheUser()
+        {
+            //arrange
+            SpendingDto newSpendingDto = new SpendingDto
+            {
+                UserId = 1,
+                UserFullName = "Anthony Stark",
+                Date = DateTime.Parse("2023-02-16T00:00:00"),
+                SpendingTypeId = 1,
+                SpendingTypeName = "Restaurant",
+                Amount = 50,
+                CurrencyName = "EUR",
+                Comment = "Nice lunch in Nice on the market place"
+            };
+
+            ServiceResponse<Spending> newSpendingSR = new ServiceResponse<Spending>
+            {
+                Data = null,
+                Success = false,
+                Message = "The currency must be the same as the user's currency."
+            };
+
+            _spendingService.Setup(x => x.CreateSpending(newSpendingDto)).ReturnsAsync(newSpendingSR);
+
+            //act
+            var spendingResult = await _sut.Create(newSpendingDto);
+
+            //assert
+            Assert.IsType<BadRequestObjectResult>(spendingResult.Result);
+
+            var spendingResultCasted = (BadRequestObjectResult)spendingResult.Result;
+            var spendingResultMessage = spendingResultCasted.Value;
+            Assert.Equal("The currency must be the same as the user's currency.", spendingResultMessage);
+        }
+
+
+
+
+        // Create a list of Spendings by user Anthony Stark
         private async Task<ServiceResponse<List<SpendingDto>>> GetSpendingsData()
         {
             List<SpendingDto> spendingsData = new List<SpendingDto>
