@@ -1,7 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
 
-namespace ASPNETWebAPI
+namespace ASPNETWebAPI.Models
 {
     public class Currency
     {

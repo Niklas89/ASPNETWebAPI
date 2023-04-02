@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.IdentityModel.Tokens;
 
 namespace ASPNETWebAPI.Controllers
 {
@@ -7,66 +8,59 @@ namespace ASPNETWebAPI.Controllers
     [ApiController]
     public class SpendingController : ControllerBase
     {
-        private readonly DataContext _context;
+        private readonly ISpendingService _spendingService;
 
-        public SpendingController(DataContext context)
+        public SpendingController(ISpendingService spendingService)
         {
-            _context = context;
+            _spendingService = spendingService;
         }
 
+
+        /// <summary>
+        /// Get a list of spendings ordered or unordered associated with specified user ID.
+        /// <list type="bullet">
+        /// <item><description><para><em>To return a list ordered by date: the route parameter should be "date" : /api/Spending/date</em></para></description></item>
+        /// <item><description><para><em>To return a list ordered by amount: the route parameter should be "amount" : /api/Spending/amount</em></para></description></item>
+        /// <item><description><para><em>To return an unordered list (ordered by spending id), the route should be : /api/Spending/</em></para></description></item>
+        /// </list>
+        /// </summary>
+        /// <param name="userId"></param>
+        /// <returns><strong>A list of spendings ordered by date, amount or unordered associated with specified user ID.</strong></returns>
         [HttpGet]
+        [HttpGet("{order}")]
         public async Task<ActionResult<List<SpendingDto>>> Get(int userId)
         {
-            var spendings = await _context.Spendings
-                .Where(s => s.UserId == userId)
-                // circular error, because each spendingType has a spending and each spending has a spendingType...
-                // So I added [JsonIgnore] in SpendingType class
-                .Include(s => s.SpendingType)
-                .Include(s => s.User)
-                .Include(s => s.User.Currency)
-                .ToListAsync();
+            string orderBy = string.Empty;
 
-            List<SpendingDto> spendingDtos = new List<SpendingDto>();
+            if (Request?.Path.Value != null) 
+                orderBy = Request.Path.Value;
 
-            foreach (var spending in spendings)
+            var result = await _spendingService.GetSpendings(userId, orderBy);
+            if (!result.Success)
             {
-                spendingDtos.Add(new SpendingDto
-                {
-                    Id = spending.Id,
-                    UserId = spending.UserId,
-                    UserFullName = spending.User.FirstName + " " + spending.User.LastName,
-                    Date = spending.Date,
-                    SpendingTypeId = spending.SpendingTypeId,
-                    SpendingTypeName = spending.SpendingType.Name,
-                    Amount = spending.Amount,
-                    CurrencyName = spending.User.Currency.IsoCode,
-                    Comment = spending.Comment
-                });
+                return BadRequest(result.Message);
             }
+            return Ok(result.Data);
 
-            return spendingDtos;
         }
 
+
+        /// <summary>
+        /// Create a new spending
+        /// </summary>
+        /// <param name="request"></param>
+        /// <returns>The new list of spendings</returns>
         [HttpPost]
-        public async Task<ActionResult<List<SpendingDto>>> Create(SpendingDto request)
+        public async Task<ActionResult<Spending>> Create(SpendingDto request)
         {
-            var user = await _context.Users.FindAsync(request.UserId);
-            if (user == null)
-                return NotFound();
 
-            var newSpending = new Spending
+            var result = await _spendingService.CreateSpending(request);
+            if (!result.Success)
             {
-                Date = request.Date,
-                Amount = request.Amount,
-                Comment = request.Comment,
-                UserId = request.UserId,
-                SpendingTypeId= request.SpendingTypeId
-            };
-
-            _context.Spendings.Add(newSpending);
-            await _context.SaveChangesAsync();
-
-            return await Get(newSpending.UserId);
+                return BadRequest(result.Message);
+            }
+            //return await Get(result.Data.UserId);
+            return Ok(result.Data);
         }
     }
 }

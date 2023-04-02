@@ -1,26 +1,24 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace ASPNETWebAPI
+namespace ASPNETWebAPI.Models
 {
-    public class SpendingDto
+    public class Spending
     {
         public int Id { get; set; }
 
-        public int UserId { get; set; }
-        public string UserFullName { get; set; }
-
         public DateTime Date { get; set; }
-
-        public int SpendingTypeId { get; set; }
-        public string SpendingTypeName { get; set; }
 
         // The amount can be a number with maximum two decimals
         [RegularExpression(@"^(\d{1,})+([\.\,]\d{1,2})?$")]
         public float Amount { get; set; }
 
-        public string CurrencyName { get; set; }
-
         [MaxLength(100)]
         public string Comment { get; set; }
+
+        public User User { get; set; }
+        public int UserId { get; set; }
+
+        public SpendingType SpendingType { get; set; }
+        public int SpendingTypeId { get; set; }
     }
 }

@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using ASPNETWebAPI.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace ASPNETWebAPI.Data
 {
