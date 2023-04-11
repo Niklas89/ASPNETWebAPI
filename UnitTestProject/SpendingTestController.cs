@@ -41,6 +41,7 @@ namespace UnitTestProject
 
 
             //assert
+            _spendingService.Verify(s => s.GetSpendings(1, ""), Times.Once());
             Assert.NotNull(spendingResult);
             Assert.IsType<OkObjectResult>(spendingResult.Result.Result);
             //Assert.Equal(GetSpendingsData().Count(), spendingResult.Count());
